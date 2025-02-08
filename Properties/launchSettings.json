@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LeadsSaver-RabbitMQ": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

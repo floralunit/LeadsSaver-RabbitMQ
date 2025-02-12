@@ -1,4 +1,5 @@
-﻿using LeadsSaverRabbitMQ.Models;
+﻿using LeadsSaver_RabbitMQ.Consumers;
+using LeadsSaverRabbitMQ.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Reflection.Metadata;
@@ -16,9 +17,13 @@ public class AstraContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<OuterMessage>()
+           .ToTable("OuterMessage", "stella")
            .HasKey(b => b.OuterMessage_ID);
         modelBuilder.Entity<OuterMessageReader>()
+           .ToTable("OuterMessageReader", "stella")
            .HasKey(b => b.OuterMessageReader_ID);
+        modelBuilder.Entity<EmployeeIdResult>()
+           .HasNoKey();
         // Дополнительная конфигурация модели (если нужно)
     }
 }

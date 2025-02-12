@@ -10,37 +10,37 @@
         /// <summary>
         /// Идентификационный номер рекламной кампании в LMS.
         /// </summary>
-        public int? CampaignId { get; set; }
+        public int? Campaign_Id { get; set; }
 
         /// <summary>
         /// Идентификационный номер департамента (отдела) в LMS.
         /// </summary>
-        public int? DepartmentId { get; set; }
+        public int? Department_Id { get; set; }
 
         /// <summary>
         /// Идентификационный номер типа запроса в LMS.
         /// </summary>
-        public int RequestTypeId { get; set; }
+        public int Request_Type_Id { get; set; }
         /// <summary>
         /// Идентификационный клиента в LMS.
         /// </summary>
-        public int? ClientId { get; set; }
-        public int? AssignedId { get; set; }
+        public int? Client_Id { get; set; }
+        public int? Assigned_Id { get; set; }
 
         /// <summary>
         /// Идентификационный номер площадки (рекламного канала) в LMS.
         /// </summary>
-        public int? ChannelId { get; set; }
+        public int? Channel_Id { get; set; }
 
         /// <summary>
         /// Идентификационный номер источника возникновения лида в LMS.
         /// </summary>
-        public int? SourceId { get; set; }
+        public int? Source_Id { get; set; }
 
         /// <summary>
         /// Идентификационный номер дилера в LMS.
         /// </summary>
-        public int? DealerId { get; set; }
+        public int? Dealer_Id { get; set; }
 
         /// <summary>
         /// Комментарий к обращению клиента (лиду). В теле комментария может быть указана комплектация и желаемый цвет автомобиля-потребности клиента.
@@ -55,27 +55,27 @@
         /// <summary>
         /// Признак клиента-юридического лица: 0 – физ. лицо, 1 – юр. Лицо.
         /// </summary>
-        public int? IsBusiness { get; set; }
+        public int? Is_Business { get; set; }
 
         /// <summary>
         /// Наименование юр. лица.
         /// </summary>
-        public string BusinessName { get; set; }
+        public string Business_Name { get; set; }
 
         /// <summary>
         /// Имя клиента - физ. лица.
         /// </summary>
-        public string FirstName { get; set; }
+        public string First_Name { get; set; }
 
         /// <summary>
         /// Отчество клиента - физ. лица.
         /// </summary>
-        public string MiddleName { get; set; }
+        public string Middle_Name { get; set; }
 
         /// <summary>
         /// Фамилия клиента - физ. лица.
         /// </summary>
-        public string LastName { get; set; }
+        public string Last_Name { get; set; }
 
         /// <summary>
         /// Адрес электронной почты, указанный клиентом в обращении.
@@ -90,17 +90,17 @@
         /// <summary>
         /// Предпочтительный способ связи: 1 – телефон, 0 – электронная почта.
         /// </summary>
-        public int? CommunicationMethod { get; set; }
+        public char? communication_method { get; set; }
 
         /// <summary>
         /// Идентификатор бренда в LMS, для автомобиля, указанного в обращении клиента.
         /// </summary>
-        public int? BrandId { get; set; }
+        public int? Brand_Id { get; set; }
 
         /// <summary>
         /// Идентификатор модели в LMS, для автомобиля, указанного в обращении клиента.
         /// </summary>
-        public int? ModelId { get; set; }
+        public int? Model_Id { get; set; }
 
         /// <summary>
         /// VIN автомобиля.
@@ -116,7 +116,7 @@
         /// Список номеров телефонов, указанных клиентом в обращении.
         /// </summary>
         public List<Phone>? Phones { get; set; }
-
+        
         /// <summary>
         /// Согласие на отправку смс и других уведомлений: 0 - нет, 1 - да.
         /// </summary>
@@ -135,34 +135,34 @@
         /// <summary>
         /// Желаемая дата контакта в формате yyyy-MM-dd hh:mm:ss.
         /// </summary>
-        public string ContactAt { get; set; }
-        public DateTime? СreatedAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
+        public string Contact_At { get; set; }
+        public DateTime? created_at { get; set; }
+        public DateTime? Updated_At { get; set; }
 
         /// <summary>
         /// Параметры источника
         /// </summary>
-        public Source Source { get; set; }
+        public Source source { get; set; }
 
         /// <summary>
         /// Описание бренда
         /// </summary>
-        public VehicleBrand VehicleBrand { get; set; }
+        public VehicleBrand vehicleBrand { get; set; }
 
         /// <summary>
         /// Описание модели
         /// </summary>
-        public VehicleModel VehicleModel { get; set; }
+        public VehicleModel vehicleModel { get; set; }
 
         /// <summary>
         /// Описание типа запроса
         /// </summary>
-        public RequestType RequestType { get; set; }
+        public RequestType requestType { get; set; }
 
         /// <summary>
         /// Массив стадий запроса
         /// </summary>
-        public Stage[] Stages { get; set; }
+        public Stage[] stages { get; set; }
     }
 
     public class Phone

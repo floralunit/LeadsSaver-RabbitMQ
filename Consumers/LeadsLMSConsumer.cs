@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using LeadsSaverRabbitMQ.Configuration;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Net.WebSockets;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
 
@@ -31,28 +32,45 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
             var jsonString = entity.MessageText;
             try
             {
+                var centerId = context.Message.Center_ID;
+                var projectId = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName).ProjectGuid;
+
                 Request l = JsonConvert.DeserializeObject<Request>(jsonString);
                 var request_id = l.Id;
-                var request_type_id = l.RequestTypeId;
-                var client_id = l.ClientId;
-                var assigned_id = l.AssignedId;
+                var request_type_id = l.Request_Type_Id;
+                var client_id = l.Client_Id;
+
+                Guid? employeeId = null;
+                var assigned_id = l.Assigned_Id;
+                if (assigned_id != null)
+                {
+                    var query = "SELECT roi.Row_ID FROM autocrm.RowOuterID roi " +
+    "WHERE roi.Outer_ID = {0} AND roi.SendLogRowType_ID = 4 AND roi.Center_ID = '{1}'";
+
+                    employeeId = _dbContext.EmployeeIdResults
+                            .FromSqlRaw(query, assigned_id, centerId.ToString())
+                            .AsEnumerable()
+                            .FirstOrDefault()?.Row_ID;
+                }
+
                 var comment = l.Comment;
-                var last_name = l.LastName;
-                var first_name = l.FirstName;
-                var middle_name = l.MiddleName;
-                var business_name = l.BusinessName;
+                var last_name = l.Last_Name;
+                var first_name = l.First_Name;
+                var middle_name = l.Middle_Name;
+                var business_name = l.Business_Name;
                 var email = l.Email;
-                var phone = l.Phones?.First().Number;
+                var phone = l.Phones?.FirstOrDefault()?.Number;
                 var address = l.Address;
-                var communication_method = l.CommunicationMethod;
+                var communication_method = l.communication_method;
                 var client_confirm_communication = l.ClientConfirmCommunication;
                 var vin = l.Vin;
-                var created_at = l.СreatedAt;
-                var request_type_name = l.RequestType.Name;
-                var model_name = l.VehicleModel.Name;
-                var stage_work_id = l.Stages.FirstOrDefault(x => x.StageTypeId == 3).Id;
-                var centerId = context.Message.Center_ID;
-                var projectId = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName);
+                var created_at = l.created_at;
+                var request_type_name = l.requestType?.Name;
+                var model_name = l.vehicleModel?.name;
+
+                var stages = l.stages;
+                var stage_work_id = stages?.FirstOrDefault(x => x.stage_type_id == 3)?.Id;
+
                 Guid.TryParse("B5C8A3E3-CF6F-44B3-83BF-68ACA010B473", out var updUser);
 
                 Guid? visitAimId = GetVisitAimId(request_type_id);
@@ -63,76 +81,134 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
                                           $"LMS лид {client_id}\r\n" +
                                           $"{last_name ?? ""} {first_name ?? ""} {middle_name ?? ""}\r\n" +
                                           $"{business_name ?? ""}\r\n" +
-                                          $"{phone ?? ""}\r\n" +
+                                          //{phone ?? ""}\r\n" +
                                           $"{model_name ?? ""}\r\n" +
                                           $"{vin ?? ""}\r\n" +
-                                          $"{comment ?? ""}\r\n" +
-                                          $"Предпочтительный способ связи = {communication_method}";
+                                          $"{comment ?? ""}\r\n";
+                // $"Предпочтительный способ связи = {communication_method}";
 
-                var query = "SELECT roi.Row_ID FROM autocrm.RowOuterID roi " +
-                    "WHERE roi.Outer_ID = {0} AND roi.SendLogRowType_ID = 4 AND roi.Center_ID = {1}";
+                string connectionString = "Server=KOR-DB-04;Database=ASCADAII_DEVELOP;User Id=YaskunovaAYu;Password=BIZ3B6rDc890+52UECdocg1bm6jDB3Kd7p89O3lVVxc=;encrypt=false;";
 
-                var employeeId = _dbContext.EmployeeIdResults
-                        .FromSqlRaw(query, assigned_id, centerId)
-                        .AsEnumerable()
-                        .FirstOrDefault();
+                using (SqlConnection connection = new SqlConnection(connectionString))
+                {
+                    SqlCommand command = new SqlCommand("dbo.PR_EMessage_Set", connection);
+                    command.CommandType = CommandType.StoredProcedure;
 
-                var createdAtParam = new SqlParameter("@DocumentBaseDate", created_at);
-                var departmentIdParam = new SqlParameter("@Department_ID", DBNull.Value);
-                var projectIdParam = new SqlParameter("@Project_ID", projectId);
-                var centerIdParam = new SqlParameter("@Center_ID", centerId);
-                var userIdParam = new SqlParameter("@InsApplicationUser_ID", updUser);
-                var visitAimIdParam = new SqlParameter("@VisitAim_ID", visitAimId);
-                var eMessageSubjectIdParam = new SqlParameter("@EMessageSubject_ID", eMessageSubjectId);
-                var employeeIdParam = new SqlParameter("@EmployeePlan_ID", employeeId);
-                var eMessageCommentParam = new SqlParameter("@Comment", eMessageComment ?? (object)DBNull.Value);
+                    command.Parameters.Add("@DocumentBaseDate", SqlDbType.DateTime).Value = created_at;
+                    command.Parameters.Add("@Department_ID", SqlDbType.UniqueIdentifier).Value = DBNull.Value;
+                    command.Parameters.Add("@Project_ID", SqlDbType.UniqueIdentifier).Value = projectId;
+                    command.Parameters.Add("@Center_ID", SqlDbType.UniqueIdentifier).Value = centerId;
+                    command.Parameters.Add("@InsApplicationUser_ID", SqlDbType.UniqueIdentifier).Value = updUser;
+                    command.Parameters.Add("@VisitAim_ID", SqlDbType.UniqueIdentifier).Value = visitAimId ?? (object)DBNull.Value;
+                    command.Parameters.Add("@EMessageSubject_ID", SqlDbType.UniqueIdentifier).Value = eMessageSubjectId ?? (object)DBNull.Value;
+                    //command.Parameters.Add("@EmployeePlan_ID", SqlDbType.UniqueIdentifier).Value = employeeId ?? (object)DBNull.Value;
 
-                var errorParam = new SqlParameter("@ErrMes", SqlDbType.NVarChar, 4000) { Direction = ParameterDirection.Output };
+                    command.Parameters.Add("@ErrMes", SqlDbType.VarChar, 1000).Direction = ParameterDirection.Output;
 
-                var proActivityParam = new SqlParameter("@ProActivity", 39);
-                var leadOrderNumberParam = new SqlParameter("@LeadOrderNumber", request_id);
-                var leadIdParam = new SqlParameter("@LeadID", client_id);
-                var leadPhoneNumberParam = new SqlParameter("@LeadPhoneNumber", phone);
-                var leadEmailParam = new SqlParameter("@LeadEMail", email);
-                var leadLastNameParam = new SqlParameter("@LeadLastName", last_name);
-                var leadFirstNameParam = new SqlParameter("@LeadFirstName", first_name);
-                var leadMiddleNameParam = new SqlParameter("@LeadMiddleName", middle_name);
-                var leadBusinessNameParam = new SqlParameter("@LeadBusinessName", business_name);
-                var leadAddressParam = new SqlParameter("@LeadAddress", address);
-                var leadCommunicationMethodParam = new SqlParameter("@LeadCommunicationMethod", communication_method);
-                var leadForceTransitionToAccept = new SqlParameter("@ForceTransitionToAccept ", 1);
+                    connection.Open();
+                    command.ExecuteNonQuery();
 
-                _dbContext.Database.ExecuteSqlRaw("EXEC dbo.PR_EMessage_Set @DocumentBaseDate, @Department_ID, @Project_ID, @Center_ID, @InsApplicationUser_ID, " +
-                                                 "@VisitAim_ID, @EMessageSubject_ID, @EmployeePlan_ID, @Comment, @ErrMes OUTPUT, @ProActivity, " +
-                                                 "@LeadOrderNumber, @LeadID, @LeadPhoneNumber, @LeadEMail, @LeadLastName, @LeadFirstName, " +
-                                                 "@LeadMiddleName, @LeadBusinessName, @LeadAddress, @LeadCommunicationMethod, @ForceTransitionToAccept",
-                                                 createdAtParam,
-                                                 departmentIdParam,
-                                                 projectIdParam,
-                                                 centerIdParam,
-                                                 userIdParam,
-                                                 visitAimIdParam,
-                                                 eMessageSubjectIdParam,
-                                                 employeeIdParam,
-                                                 eMessageCommentParam,
-                                                 errorParam,
-                                                 proActivityParam,
-                                                 leadOrderNumberParam,
-                                                 leadIdParam,
-                                                 leadPhoneNumberParam,
-                                                 leadEmailParam,
-                                                 leadLastNameParam,
-                                                 leadFirstNameParam,
-                                                 leadMiddleNameParam,
-                                                 leadBusinessNameParam,
-                                                 leadAddressParam,
-                                                 leadCommunicationMethodParam,
-                                                 leadForceTransitionToAccept);
+                    // Получаем значение выходного параметра
+                    var employeeCount = command.Parameters["@ErrMes"].Value;
 
-                var eMessageError = (string)errorParam.Value;
+                    Console.WriteLine($"Количество сотрудников: {employeeCount}");
+                }
+
+                //var createdAtParam = new SqlParameter("@DocumentBaseDate", created_at);
+                //var departmentIdParam = new SqlParameter("@Department_ID", SqlDbType.UniqueIdentifier);
+                //departmentIdParam.Value = DBNull.Value;
+                //var projectIdParam = new SqlParameter("@Project_ID", SqlDbType.UniqueIdentifier);
+                //projectIdParam.Value = projectId;
+                //var centerIdParam = new SqlParameter("@Center_ID", SqlDbType.UniqueIdentifier);
+                //centerIdParam.Value = centerId;
+                //var userIdParam = new SqlParameter("@InsApplicationUser_ID", SqlDbType.UniqueIdentifier);
+                //userIdParam.Value = updUser;
+                //var visitAimIdParam = new SqlParameter("@VisitAim_ID", SqlDbType.UniqueIdentifier);
+                //if (visitAimId.HasValue)
+                //{
+                //    visitAimIdParam.Value = visitAimId;
+                //}
+                //else
+                //{
+                //    visitAimIdParam.Value = DBNull.Value;
+                //}
+                //var eMessageSubjectIdParam = new SqlParameter("@EMessageSubject_ID", SqlDbType.UniqueIdentifier);
+                //if (eMessageSubjectId.HasValue)
+                //{
+                //    eMessageSubjectIdParam.Value = eMessageSubjectId;
+                //}
+                //else
+                //{
+                //    eMessageSubjectIdParam.Value = DBNull.Value;
+                //}
+                //var employeeIdParam = new SqlParameter("@EmployeePlan_ID", SqlDbType.UniqueIdentifier);
+                //if (employeeId.HasValue)
+                //{
+                //    employeeIdParam.Value = employeeId; 
+                //}
+                //else
+                //{
+                //    employeeIdParam.Value = DBNull.Value;
+                //}
+                //var eMessageCommentParam = new SqlParameter("@Comment", eMessageComment);
+
+                //var errorParam = new SqlParameter("@ErrMes", SqlDbType.NVarChar, 4000) { Direction = ParameterDirection.Output };
+
+                //var proActivityParam = new SqlParameter("@ProActivity", 39);
+                //var leadOrderNumberParam = new SqlParameter("@LeadOrderNumber", request_id.ToString());
+                //var leadIdParam = new SqlParameter("@LeadID", client_id);
+                //var leadPhoneNumberParam = new SqlParameter("@LeadPhoneNumber", phone);
+                //var leadEmailParam = new SqlParameter("@LeadEMail", email);
+                //var leadLastNameParam = new SqlParameter("@LeadLastName", last_name);
+                //var leadFirstNameParam = new SqlParameter("@LeadFirstName", first_name);
+                //var leadMiddleNameParam = new SqlParameter("@LeadMiddleName", middle_name);
+                //var leadBusinessNameParam = new SqlParameter("@LeadBusinessName", business_name);
+                //var leadAddressParam = new SqlParameter("@LeadAddress", address);
+                //var leadCommunicationMethodParam = new SqlParameter("@LeadCommunicationMethod", communication_method == '1' ? (short)1 : (communication_method == '0' ? (short)0 : DBNull.Value));
+                //var leadForceTransitionToAccept = new SqlParameter("@ForceTransitionToAccept ", 1);
+
+                //var pipa = _dbContext.Database.ExecuteSqlRaw($"EXEC dbo.PR_EMessage_Set " +
+                //    $"@DocumentBaseDate='{created_at}', " +
+                //    $"@Department_ID=NULL, " +
+                //    $"@Project_ID='{projectId}', " +
+                //    $"@Center_ID='{centerId}'," +
+                //    $" @InsApplicationUser_ID='{updUser}', " +
+                //    $"@VisitAim_ID='{visitAimId}', " +
+                //    $"@EMessageSubject_ID='{eMessageSubjectId}', " +
+                //    $"@EmployeePlan_ID='{employeeId}', " +
+                //    $"@ErrMes OUTPUT");
+                //                                  //"@Comment "
+                //                                  //"@ProActivity, " +
+                //                                  //"@ErrMes OUTPUT ",
+                //                                  //"@LeadOrderNumber, @LeadID, @LeadPhoneNumber, @LeadEMail, @LeadLastName, @LeadFirstName, " +
+                //                                  //"@LeadMiddleName, @LeadBusinessName, @LeadAddress, @LeadCommunicationMethod, @ForceTransitionToAccept",
+                //                                  //createdAtParam,
+                //                                  //departmentIdParam,
+                //                                  //projectIdParam,
+                //                                  //centerIdParam,
+                //                                  //userIdParam,
+                //                                  //visitAimIdParam,
+                //                                  //eMessageSubjectIdParam,
+                //                                  //employeeIdParam,
+                //                                 //eMessageCommentParam);
+                //                                 //errorParam);
+                //                                 //proActivityParam);
+                //                                 //leadOrderNumberParam,
+                //                                 //leadIdParam,
+                //                                 //leadPhoneNumberParam,
+                //                                 //leadEmailParam,
+                //                                 //leadLastNameParam,
+                //                                 //leadFirstNameParam,
+                //                                 //leadMiddleNameParam,
+                //                                 //leadBusinessNameParam,
+                //                                 //leadAddressParam,
+                //                                 //leadCommunicationMethodParam,
+                //                                 //leadForceTransitionToAccept);
+
+                //var eMessageError = (string)errorParam.Value;
 
             }
-            catch (JsonException ex)
+            catch (InvalidOperationException ex)
             {
                 Console.WriteLine($"Ошибка десериализации: {ex.Message}");
 

@@ -13,12 +13,12 @@
         /// <summary>
         /// Идентификатор связанного запроса.
         /// </summary>
-        public int? RequestId { get; set; }
+        public int? request_Id { get; set; }
 
         /// <summary>
         /// Идентификатор типа этапа.
         /// </summary>
-        public int? StageTypeId { get; set; }
+        public int? stage_type_id { get; set; }
 
         /// <summary>
         /// Дата и время последнего обновления данных по этапу.
@@ -33,7 +33,7 @@
         /// <summary>
         /// Идентификатор типа результата закрытия этапа.
         /// </summary>
-        public int? ResultId { get; set; }
+        public int? Result_Id { get; set; }
 
         /// <summary>
         /// Признак закрытия этапа.
@@ -49,5 +49,18 @@
         /// Время, оставшееся на обработку текущего этапа.
         /// </summary>
         public TimeSpan TimeLeft { get; set; }
+        public StageType stageType { get; set; }
+    }
+
+    public class StageType
+    {
+        public int id { get; set; }
+        public string code { get; set; }
+        public string name { get; set; }
+        public int priority { get; set; }
+        public int status { get; set; }
+        public int user_id { get; set; }
+        public string created_at { get; set; }
+        public string updated_at { get; set; }
     }
 }

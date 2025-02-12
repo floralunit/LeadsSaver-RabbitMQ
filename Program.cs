@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace LeadsSaverRabbitMQ
@@ -25,7 +26,9 @@ namespace LeadsSaverRabbitMQ
 
                     services.AddDbContext<AstraContext>(options =>
                     {
-                        options.UseSqlServer(hostContext.Configuration.GetConnectionString("DefaultConnection"));
+                        options
+                        .UseSqlServer(hostContext.Configuration.GetConnectionString("DefaultConnection"))
+                        .LogTo(Console.WriteLine, LogLevel.Information);
                     });
                     services.AddMassTransit(cfg =>
                     {

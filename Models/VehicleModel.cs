@@ -13,12 +13,12 @@
         /// <summary>
         /// Идентификатор бренда в LMS, для автомобиля, указанного в обращении клиента.
         /// </summary>
-        public int? BrandId { get; set; }
+        public int? Brand_Id { get; set; }
 
         /// <summary>
         /// Название модели, указанной клиентом в обращении.
         /// </summary>
-        public string Name { get; set; }
+        public string name { get; set; }
 
         /// <summary>
         /// Код трейд-ин модели.

@@ -1,51 +1,71 @@
 ﻿using MassTransit;
 using LeadsSaverRabbitMQ.Models;
-using LMSWebService.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Options;
 using LeadsSaverRabbitMQ.Configuration;
 using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Net.WebSockets;
+using Microsoft.Extensions.Logging;
+using LeadsSaverRabbitMQ.MessageModels;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
 
-public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
+public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 {
     private readonly AstraContext _dbContext;
     private readonly BrandConfigurationSettings _brandSettings;
+    private readonly ConnectionDBSettings _connectionDBSettings;
+    private readonly ILogger<LeadsLMSConsumer> _logger;
 
-    public LeadsLMSConsumer(AstraContext dbContext, IOptions<BrandConfigurationSettings> brandSettings)
+    private readonly IPublishEndpoint _publishEndpoint;
+
+    public LeadsLMSConsumer(AstraContext dbContext, 
+                            IOptions<BrandConfigurationSettings> brandSettings, 
+                            IOptions<ConnectionDBSettings> connectionDBSettings,
+                            ILogger<LeadsLMSConsumer> logger,
+                            IPublishEndpoint publishEndpoint)
     {
         _dbContext = dbContext;
         _brandSettings = brandSettings.Value;
+        _connectionDBSettings = connectionDBSettings.Value;
+        _logger = logger;
+        _publishEndpoint = publishEndpoint;
     }
 
-    public async Task Consume(ConsumeContext<RabbitMQLeadMessage> context)
+    public async Task Consume(ConsumeContext<RabbitMQLeadMessage_LMS> context)
     {
-        var value = $"Received: LMS Message ({context.Message.Message_ID}))";
-        Console.WriteLine(value);
-        var entity = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
-        if (entity != null)
+        _logger.LogInformation("NEW LMS MESSAGE Received: LMS Message ({Message}))", context.Message.Message_ID);
+        var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
+        if (entityMessage == null)
         {
-            var jsonString = entity.MessageText;
+            _logger.LogError($"Message ({context.Message.Message_ID}) was not found in OuterMessage table", DateTimeOffset.Now);
+        }
+        else
+        {
+            var jsonString = entityMessage.MessageText;
             try
             {
                 var centerId = context.Message.Center_ID;
-                var projectId = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName).ProjectGuid;
+                var brand = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName);
+                if (brand == null)
+                {
+                    _logger.LogError($"Brand ({context.Message.BrandName}) was not found", DateTimeOffset.Now);
+                    return;
+                }
+                var projectId = brand.ProjectGuid;
 
-                Request l = JsonConvert.DeserializeObject<Request>(jsonString);
-                var request_id = l.Id;
-                var request_type_id = l.Request_Type_Id;
-                var client_id = l.Client_Id;
+                Request lead = JsonConvert.DeserializeObject<Request>(jsonString);
+                var request_id = lead.Id;
+                var request_type_id = lead.Request_Type_Id;
+                var client_id = lead.Client_Id;
 
                 Guid? employeeId = null;
-                var assigned_id = l.Assigned_Id;
+                var assigned_id = lead.Assigned_Id;
                 if (assigned_id != null)
                 {
                     var query = "SELECT roi.Row_ID FROM autocrm.RowOuterID roi " +
-    "WHERE roi.Outer_ID = {0} AND roi.SendLogRowType_ID = 4 AND roi.Center_ID = '{1}'";
+                                "WHERE roi.Outer_ID = {0} AND roi.SendLogRowType_ID = 4 AND roi.Center_ID = '{1}'";
 
                     employeeId = _dbContext.EmployeeIdResults
                             .FromSqlRaw(query, assigned_id, centerId.ToString())
@@ -53,23 +73,20 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
                             .FirstOrDefault()?.Row_ID;
                 }
 
-                var comment = l.Comment;
-                var last_name = l.Last_Name;
-                var first_name = l.First_Name;
-                var middle_name = l.Middle_Name;
-                var business_name = l.Business_Name;
-                var email = l.Email;
-                var phone = l.Phones?.FirstOrDefault()?.Number;
-                var address = l.Address;
-                var communication_method = l.communication_method;
-                var client_confirm_communication = l.ClientConfirmCommunication;
-                var vin = l.Vin;
-                var created_at = l.created_at;
-                var request_type_name = l.requestType?.Name;
-                var model_name = l.vehicleModel?.name;
-
-                var stages = l.stages;
-                var stage_work_id = stages?.FirstOrDefault(x => x.stage_type_id == 3)?.Id;
+                var comment = lead.Comment;
+                var last_name = lead.Last_Name;
+                var first_name = lead.First_Name;
+                var middle_name = lead.Middle_Name;
+                var business_name = lead.Business_Name;
+                var email = lead.Email;
+                var phone = lead.Phones?.FirstOrDefault()?.Number;
+                var address = lead.Address;
+                var communication_method = lead.communication_method;
+                var client_confirm_communication = lead.ClientConfirmCommunication;
+                var vin = lead.Vin;
+                var created_at = lead.created_at;
+                var request_type_name = lead.requestType?.Name;
+                var model_name = lead.vehicleModel?.name;
 
                 Guid.TryParse("B5C8A3E3-CF6F-44B3-83BF-68ACA010B473", out var updUser);
 
@@ -84,10 +101,10 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
                                           //{phone ?? ""}\r\n" +
                                           $"{model_name ?? ""}\r\n" +
                                           $"{vin ?? ""}\r\n" +
-                                          $"{comment ?? ""}\r\n";
-                // $"Предпочтительный способ связи = {communication_method}";
+                                          $"{comment ?? ""}\r\n" +
+                                          $"Предпочтительный способ связи = {communication_method}";
 
-                string connectionString = "Server=KOR-DB-04;Database=ASCADAII_DEVELOP;User Id=YaskunovaAYu;Password=BIZ3B6rDc890+52UECdocg1bm6jDB3Kd7p89O3lVVxc=;encrypt=false;";
+                string connectionString = _connectionDBSettings.DefaultConnection;
 
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
@@ -101,126 +118,70 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
                     command.Parameters.Add("@InsApplicationUser_ID", SqlDbType.UniqueIdentifier).Value = updUser;
                     command.Parameters.Add("@VisitAim_ID", SqlDbType.UniqueIdentifier).Value = visitAimId ?? (object)DBNull.Value;
                     command.Parameters.Add("@EMessageSubject_ID", SqlDbType.UniqueIdentifier).Value = eMessageSubjectId ?? (object)DBNull.Value;
-                    //command.Parameters.Add("@EmployeePlan_ID", SqlDbType.UniqueIdentifier).Value = employeeId ?? (object)DBNull.Value;
+                    command.Parameters.Add("@EmployeePlan_ID", SqlDbType.UniqueIdentifier).Value = employeeId ?? (object)DBNull.Value;
+                    command.Parameters.Add("@Comment", SqlDbType.VarChar).Value = eMessageComment;
+                    command.Parameters.Add("@ProActivity", SqlDbType.TinyInt).Value = 39;
+                    command.Parameters.Add("@LeadOrderNumber", SqlDbType.VarChar, 255).Value = request_id.ToString();
+                    command.Parameters.Add("@LeadID", SqlDbType.VarChar, 255).Value = client_id;
+                    command.Parameters.Add("@LeadPhoneNumber", SqlDbType.VarChar, 255).Value = phone;
+                    command.Parameters.Add("@LeadEMail", SqlDbType.VarChar, 255).Value = email;
+                    command.Parameters.Add("@LeadLastName", SqlDbType.VarChar, 255).Value = last_name;
+                    command.Parameters.Add("@LeadFirstName", SqlDbType.VarChar, 255).Value = first_name;
+                    command.Parameters.Add("@LeadMiddleName", SqlDbType.VarChar, 255).Value = middle_name;
+                    command.Parameters.Add("@LeadBusinessName", SqlDbType.VarChar, 255).Value = business_name;
+                    command.Parameters.Add("@LeadAddress", SqlDbType.VarChar, 255).Value = address;
+                    command.Parameters.Add("@LeadCommunicationMethod", SqlDbType.TinyInt).Value = communication_method == '1' ? 1 : (communication_method == '0' ? 0 : DBNull.Value);
+                    command.Parameters.Add("@ForceTransitionToAccept", SqlDbType.Bit).Value = 1;
 
                     command.Parameters.Add("@ErrMes", SqlDbType.VarChar, 1000).Direction = ParameterDirection.Output;
 
                     connection.Open();
                     command.ExecuteNonQuery();
 
-                    // Получаем значение выходного параметра
-                    var employeeCount = command.Parameters["@ErrMes"].Value;
+                    var errorMes = command.Parameters["@ErrMes"].Value;
 
-                    Console.WriteLine($"Количество сотрудников: {employeeCount}");
+                    entityMessage.UpdDate = DateTime.Now;
+                    if (errorMes != null)
+                    {
+                        entityMessage.ErrorCode = 6;
+                        entityMessage.ErrorMessage = errorMes.ToString();
+                        entityMessage.ProcessingStatus = 3; //ошибка
+                        _logger.LogError($"Ошибка создания электронного обращения для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        await _dbContext.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        var stages = lead.stages;
+                        var stage = stages.First(x => x.stage_type_id == 3);
+
+                        entityMessage.ProcessingStatus = 1; //обработали и создали обращение
+                        var message = new RabbitMQStatusMessage_LMS
+                        {
+                            Message_ID = entityMessage.OuterMessage_ID,
+                            StageWorkId = stage.Id,
+                            ResultId = stage.result_id,
+                            Center_ID = centerId,
+                            BrandName = context.Message.BrandName
+                        };
+                        await _dbContext.SaveChangesAsync();
+                        _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
+
+                        await _publishEndpoint.Publish(message);
+                        _logger.LogInformation($"Собщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMS status queue", DateTimeOffset.Now);
+                    }
+         
                 }
 
-                //var createdAtParam = new SqlParameter("@DocumentBaseDate", created_at);
-                //var departmentIdParam = new SqlParameter("@Department_ID", SqlDbType.UniqueIdentifier);
-                //departmentIdParam.Value = DBNull.Value;
-                //var projectIdParam = new SqlParameter("@Project_ID", SqlDbType.UniqueIdentifier);
-                //projectIdParam.Value = projectId;
-                //var centerIdParam = new SqlParameter("@Center_ID", SqlDbType.UniqueIdentifier);
-                //centerIdParam.Value = centerId;
-                //var userIdParam = new SqlParameter("@InsApplicationUser_ID", SqlDbType.UniqueIdentifier);
-                //userIdParam.Value = updUser;
-                //var visitAimIdParam = new SqlParameter("@VisitAim_ID", SqlDbType.UniqueIdentifier);
-                //if (visitAimId.HasValue)
-                //{
-                //    visitAimIdParam.Value = visitAimId;
-                //}
-                //else
-                //{
-                //    visitAimIdParam.Value = DBNull.Value;
-                //}
-                //var eMessageSubjectIdParam = new SqlParameter("@EMessageSubject_ID", SqlDbType.UniqueIdentifier);
-                //if (eMessageSubjectId.HasValue)
-                //{
-                //    eMessageSubjectIdParam.Value = eMessageSubjectId;
-                //}
-                //else
-                //{
-                //    eMessageSubjectIdParam.Value = DBNull.Value;
-                //}
-                //var employeeIdParam = new SqlParameter("@EmployeePlan_ID", SqlDbType.UniqueIdentifier);
-                //if (employeeId.HasValue)
-                //{
-                //    employeeIdParam.Value = employeeId; 
-                //}
-                //else
-                //{
-                //    employeeIdParam.Value = DBNull.Value;
-                //}
-                //var eMessageCommentParam = new SqlParameter("@Comment", eMessageComment);
-
-                //var errorParam = new SqlParameter("@ErrMes", SqlDbType.NVarChar, 4000) { Direction = ParameterDirection.Output };
-
-                //var proActivityParam = new SqlParameter("@ProActivity", 39);
-                //var leadOrderNumberParam = new SqlParameter("@LeadOrderNumber", request_id.ToString());
-                //var leadIdParam = new SqlParameter("@LeadID", client_id);
-                //var leadPhoneNumberParam = new SqlParameter("@LeadPhoneNumber", phone);
-                //var leadEmailParam = new SqlParameter("@LeadEMail", email);
-                //var leadLastNameParam = new SqlParameter("@LeadLastName", last_name);
-                //var leadFirstNameParam = new SqlParameter("@LeadFirstName", first_name);
-                //var leadMiddleNameParam = new SqlParameter("@LeadMiddleName", middle_name);
-                //var leadBusinessNameParam = new SqlParameter("@LeadBusinessName", business_name);
-                //var leadAddressParam = new SqlParameter("@LeadAddress", address);
-                //var leadCommunicationMethodParam = new SqlParameter("@LeadCommunicationMethod", communication_method == '1' ? (short)1 : (communication_method == '0' ? (short)0 : DBNull.Value));
-                //var leadForceTransitionToAccept = new SqlParameter("@ForceTransitionToAccept ", 1);
-
-                //var pipa = _dbContext.Database.ExecuteSqlRaw($"EXEC dbo.PR_EMessage_Set " +
-                //    $"@DocumentBaseDate='{created_at}', " +
-                //    $"@Department_ID=NULL, " +
-                //    $"@Project_ID='{projectId}', " +
-                //    $"@Center_ID='{centerId}'," +
-                //    $" @InsApplicationUser_ID='{updUser}', " +
-                //    $"@VisitAim_ID='{visitAimId}', " +
-                //    $"@EMessageSubject_ID='{eMessageSubjectId}', " +
-                //    $"@EmployeePlan_ID='{employeeId}', " +
-                //    $"@ErrMes OUTPUT");
-                //                                  //"@Comment "
-                //                                  //"@ProActivity, " +
-                //                                  //"@ErrMes OUTPUT ",
-                //                                  //"@LeadOrderNumber, @LeadID, @LeadPhoneNumber, @LeadEMail, @LeadLastName, @LeadFirstName, " +
-                //                                  //"@LeadMiddleName, @LeadBusinessName, @LeadAddress, @LeadCommunicationMethod, @ForceTransitionToAccept",
-                //                                  //createdAtParam,
-                //                                  //departmentIdParam,
-                //                                  //projectIdParam,
-                //                                  //centerIdParam,
-                //                                  //userIdParam,
-                //                                  //visitAimIdParam,
-                //                                  //eMessageSubjectIdParam,
-                //                                  //employeeIdParam,
-                //                                 //eMessageCommentParam);
-                //                                 //errorParam);
-                //                                 //proActivityParam);
-                //                                 //leadOrderNumberParam,
-                //                                 //leadIdParam,
-                //                                 //leadPhoneNumberParam,
-                //                                 //leadEmailParam,
-                //                                 //leadLastNameParam,
-                //                                 //leadFirstNameParam,
-                //                                 //leadMiddleNameParam,
-                //                                 //leadBusinessNameParam,
-                //                                 //leadAddressParam,
-                //                                 //leadCommunicationMethodParam,
-                //                                 //leadForceTransitionToAccept);
-
-                //var eMessageError = (string)errorParam.Value;
-
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка десериализации: {ex.Message}");
+                _logger.LogError($"InnerException: {ex.Message}))", DateTimeOffset.Now);
 
-                // Попробуйте извлечь информацию о проблемных полях
                 if (ex.InnerException != null)
                 {
-                    Console.WriteLine($"Дополнительная информация: {ex.InnerException.Message}");
+                    _logger.LogError($"Error Info: {ex.InnerException.Message}");
                 }
             }
-        }
-        else
-        {
         }
     }
 
@@ -251,8 +212,4 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage>
             _ => null
         };
     }
-}
-public class EmployeeIdResult
-{
-    public Guid Row_ID { get; set; }
 }

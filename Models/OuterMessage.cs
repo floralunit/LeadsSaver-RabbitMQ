@@ -3,7 +3,7 @@ namespace LeadsSaverRabbitMQ.Models
 {
     public class OuterMessage
     {
-        public Guid? OuterMessage_ID { get; set; }
+        public Guid OuterMessage_ID { get; set; }
         public int? OuterMessageReader_ID { get; set; }
         public string? MessageOuter_ID { get; set; }
         public byte? ProcessingStatus { get; set; }

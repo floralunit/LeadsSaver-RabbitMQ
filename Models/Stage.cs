@@ -8,7 +8,7 @@
         /// <summary>
         /// Идентификатор этапа в LMS.
         /// </summary>
-        public int? Id { get; set; }
+        public int Id { get; set; }
 
         /// <summary>
         /// Идентификатор связанного запроса.
@@ -33,7 +33,7 @@
         /// <summary>
         /// Идентификатор типа результата закрытия этапа.
         /// </summary>
-        public int? Result_Id { get; set; }
+        public int? result_id { get; set; }
 
         /// <summary>
         /// Признак закрытия этапа.

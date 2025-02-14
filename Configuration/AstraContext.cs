@@ -17,14 +17,13 @@ public class AstraContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<OuterMessage>()
-           .ToTable("OuterMessage", "stella")
+           //.ToTable("OuterMessage", "stella")
            .HasKey(b => b.OuterMessage_ID);
         modelBuilder.Entity<OuterMessageReader>()
-           .ToTable("OuterMessageReader", "stella")
+           //.ToTable("OuterMessageReader", "stella")
            .HasKey(b => b.OuterMessageReader_ID);
         modelBuilder.Entity<EmployeeIdResult>()
            .HasNoKey();
-        // Дополнительная конфигурация модели (если нужно)
     }
 }
 

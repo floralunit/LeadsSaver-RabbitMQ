@@ -46,6 +46,8 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
             var jsonString = entityMessage.MessageText;
             try
             {
+                //_dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
+
                 var centerId = context.Message.Center_ID;
                 var brand = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName);
                 if (brand == null)
@@ -139,14 +141,15 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     command.ExecuteNonQuery();
 
                     var errorMes = command.Parameters["@ErrMes"].Value;
+                    Guid.TryParse(errorMes.ToString(), out var guid);
 
                     entityMessage.UpdDate = DateTime.Now;
-                    if (errorMes != null)
+                    if (guid == Guid.Empty)
                     {
                         entityMessage.ErrorCode = 6;
                         entityMessage.ErrorMessage = errorMes.ToString();
                         entityMessage.ProcessingStatus = 3; //ошибка
-                        _logger.LogError($"Ошибка создания электронного обращения для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        _logger.LogError($"Ошибка создания электронного обращения для id {entityMessage.MessageOuter_ID} {visitAimId} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
                         await _dbContext.SaveChangesAsync();
                     }
                     else
@@ -164,6 +167,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                             BrandName = context.Message.BrandName
                         };
                         await _dbContext.SaveChangesAsync();
+                       // _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
                         _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
                         await _publishEndpoint.Publish(message);

@@ -50,10 +50,13 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         }
         else
         {
+            if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
+                return;
+
             var jsonString = entityMessage.MessageText;
             try
             {
-                //_dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
+                _dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
 
                 var centerId = context.Message.Center_ID;
                 var brand = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName);
@@ -97,7 +100,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 var request_type_name = lead.requestType?.Name;
                 var model_name = lead.vehicleModel?.name;
 
-                Guid.TryParse("B5C8A3E3-CF6F-44B3-83BF-68ACA010B473", out var updUser);
+                Guid.TryParse("5F67890F-D8ED-46BA-99C8-0C35EF6A0E51", out var updUser);
 
                 Guid? visitAimId = GetVisitAimId(request_type_id);
 
@@ -174,7 +177,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                             BrandName = context.Message.BrandName
                         };
                         await _dbContext.SaveChangesAsync();
-                       // _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
+                        _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
                         _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
                         await _publishEndpoint.Publish(message);
@@ -205,6 +208,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
             18 or 36 => Guid.Parse("51925334-249F-4072-90E0-91CEAE1F24D9"), // Оценка (продажа) ТС с пробегом
             21 or 29 or 51 or 54 => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
             24 => Guid.Parse("1E64A761-306D-46DD-98C0-5696395DF71A"), // Корпоративный отдел
+            94 => Guid.Parse("3340CB36-EEC1-11EB-9690-0050568FC42C"), // Отдел сервиса
             _ => null
         };
     }
@@ -214,7 +218,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         return requestTypeId switch
         {
             3 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
-            6 or 12 or 21 or 24 or 29 or 30 or 39 or 48 or 54 or 56 => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
+            6 or 12 or 21 or 24 or 29 or 30 or 39 or 48 or 54 or 56 or 94 => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
             9 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
             15 or 31 or 42 or 45 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
             18 or 36 => Guid.Parse("EC2354C6-F88F-4798-B2FB-8475C6C1DB3B"), // Оценка а/м с пробегом

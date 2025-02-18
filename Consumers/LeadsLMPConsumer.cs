@@ -15,20 +15,17 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
 {
     private readonly AstraContext _dbContext;
     private readonly BrandConfigurationSettings _brandSettings;
-    private readonly ConnectionDBSettings _connectionDBSettings;
     private readonly ILogger<LeadsLMPConsumer> _logger;
 
     private readonly IPublishEndpoint _publishEndpoint;
 
     public LeadsLMPConsumer(AstraContext dbContext, 
                             IOptions<BrandConfigurationSettings> brandSettings, 
-                            IOptions<ConnectionDBSettings> connectionDBSettings,
                             ILogger<LeadsLMPConsumer> logger,
                             IPublishEndpoint publishEndpoint)
     {
         _dbContext = dbContext;
         _brandSettings = brandSettings.Value;
-        _connectionDBSettings = connectionDBSettings.Value;
         _logger = logger;
         _publishEndpoint = publishEndpoint;
     }

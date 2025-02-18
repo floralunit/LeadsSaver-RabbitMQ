@@ -8,33 +8,40 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using Microsoft.Extensions.Logging;
 using LeadsSaverRabbitMQ.MessageModels;
+using MassTransit.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
 
 public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 {
-    private readonly AstraContext _dbContext;
+    //private readonly AstraContext _dbContext;
+    private readonly IConfiguration _configuration;
     private readonly BrandConfigurationSettings _brandSettings;
-    private readonly ConnectionDBSettings _connectionDBSettings;
     private readonly ILogger<LeadsLMSConsumer> _logger;
+
+    private readonly IBrandDbContextFactory _dbContextFactory;
 
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public LeadsLMSConsumer(AstraContext dbContext, 
+    public LeadsLMSConsumer(//AstraContext dbContext, 
+                            IConfiguration configuration,
                             IOptions<BrandConfigurationSettings> brandSettings, 
-                            IOptions<ConnectionDBSettings> connectionDBSettings,
                             ILogger<LeadsLMSConsumer> logger,
-                            IPublishEndpoint publishEndpoint)
+                            IPublishEndpoint publishEndpoint,
+                            IBrandDbContextFactory dbContextFactory)
     {
-        _dbContext = dbContext;
+        // _dbContext = dbContext;
+        _configuration = configuration;
         _brandSettings = brandSettings.Value;
-        _connectionDBSettings = connectionDBSettings.Value;
         _logger = logger;
         _publishEndpoint = publishEndpoint;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task Consume(ConsumeContext<RabbitMQLeadMessage_LMS> context)
     {
+        using var _dbContext = _dbContextFactory.CreateDbContext(context.Message.BrandName);
         _logger.LogInformation("NEW LMS MESSAGE Received: LMS Message ({Message}))", context.Message.Message_ID);
         var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
         if (entityMessage == null)
@@ -106,7 +113,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                                           $"{comment ?? ""}\r\n" +
                                           $"Предпочтительный способ связи = {communication_method}";
 
-                string connectionString = _connectionDBSettings.DefaultConnection;
+                var connectionString = _configuration.GetConnectionString(brand.DataBase);
 
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {

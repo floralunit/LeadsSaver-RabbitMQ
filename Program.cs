@@ -26,14 +26,15 @@ namespace LeadsSaverRabbitMQ
                 {
                     services.Configure<RabbitMqSettings>(hostContext.Configuration.GetSection("RabbitMqSettings"));
                     services.Configure<BrandConfigurationSettings>(hostContext.Configuration.GetSection("BrandSettings"));
-                    services.Configure<ConnectionDBSettings>(hostContext.Configuration.GetSection("ConnectionStrings"));
 
                     services.AddDbContext<AstraContext>(options =>
                     {
-                        options
-                        .UseSqlServer(hostContext.Configuration.GetConnectionString("DefaultConnection"));
+                        //options
+                        //.UseSqlServer(hostContext.Configuration.GetConnectionString("DefaultConnection"));
                         //.LogTo(Console.WriteLine, LogLevel.Information);
                     });
+                    services.AddTransient<IBrandDbContextFactory, BrandDbContextFactory>();
+
                     services.AddMassTransit(cfg =>
                     {
                         cfg.AddBus(ConfigureBus);

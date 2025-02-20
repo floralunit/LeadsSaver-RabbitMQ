@@ -24,7 +24,7 @@ public class LeadsDataMartConsumer : IConsumer<RabbitMQLeadMessage_DataMart>
     private readonly IPublishEndpoint _publishEndpoint;
     public LeadsDataMartConsumer(IConfiguration configuration,
                             IOptions<BrandConfigurationSettings> brandSettings,
-                            ILogger<LeadsLMSConsumer> logger,
+                            ILogger<LeadsDataMartConsumer> logger,
                             IPublishEndpoint publishEndpoint,
                             IBrandDbContextFactory dbContextFactory)
     {

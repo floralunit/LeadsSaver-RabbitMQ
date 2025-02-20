@@ -17,7 +17,7 @@ public class LeadsDataMartConsumer : IConsumer<RabbitMQLeadMessage_DataMart>
 {
     private readonly IConfiguration _configuration;
     private readonly BrandConfigurationSettings _brandSettings;
-    private readonly ILogger<LeadsLMSConsumer> _logger;
+    private readonly ILogger<LeadsDataMartConsumer> _logger;
 
     private readonly IBrandDbContextFactory _dbContextFactory;
 

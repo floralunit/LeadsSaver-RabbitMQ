@@ -125,7 +125,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 {
                     SqlCommand command = new SqlCommand("dbo.PR_EMessage_Set", connection);
                     command.CommandType = CommandType.StoredProcedure;
-                    command.CommandTimeout = 60;
+                    command.CommandTimeout = 120;
 
                     command.Parameters.Add("@DocumentBaseDate", SqlDbType.DateTime).Value = created_at;
                     command.Parameters.Add("@Department_ID", SqlDbType.UniqueIdentifier).Value = DBNull.Value;

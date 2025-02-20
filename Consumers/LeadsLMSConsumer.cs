@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using LeadsSaverRabbitMQ.MessageModels;
 using MassTransit.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore.Query;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
 
@@ -50,8 +51,8 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         }
         else
         {
-            if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
-                return;
+            //if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
+            //    return;
 
             var jsonString = entityMessage.MessageText;
             try
@@ -106,15 +107,16 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 
                 Guid? eMessageSubjectId = GetEMessageSubjectId(request_type_id);
 
-                string eMessageComment = $"{request_type_id}\r\n" +
-                                          $"LMS лид {client_id}\r\n" +
+                string eMessageComment = $"RequestTypeId: {request_type_id}\r\n" +
+                                          $"LMS лид {request_id}\r\n" +
                                           $"{last_name ?? ""} {first_name ?? ""} {middle_name ?? ""}\r\n" +
                                           $"{business_name ?? ""}\r\n" +
-                                          //{phone ?? ""}\r\n" +
-                                          $"{model_name ?? ""}\r\n" +
-                                          $"{vin ?? ""}\r\n" +
-                                          $"{comment ?? ""}\r\n" +
-                                          $"Предпочтительный способ связи = {communication_method}";
+                                          $"Телефон клиента: {phone ?? ""}\r\n" +
+                                          $"EMail клиента: {email ?? ""}\r\n" +
+                                          $"Модель: {model_name ?? ""}\r\n" +
+                                          $"VIN: {vin ?? ""}\r\n" +
+                                          $"Комментарий клиента: {comment ?? ""}\r\n" +
+                                          $"Предпочтительный способ связи: {communication_method}";
 
                 var connectionString = _configuration.GetConnectionString(brand.DataBase);
 

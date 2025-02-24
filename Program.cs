@@ -25,7 +25,6 @@ namespace LeadsSaverRabbitMQ
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.Configure<RabbitMqSettings>(hostContext.Configuration.GetSection("RabbitMqSettings"));
-                    services.Configure<BrandConfigurationSettings>(hostContext.Configuration.GetSection("BrandSettings"));
 
                     services.AddDbContext<AstraContext>(options =>
                     {

@@ -16,20 +16,17 @@ namespace LeadsSaver_RabbitMQ.Consumers;
 public class LeadsDataMartConsumer : IConsumer<RabbitMQLeadMessage_DataMart>
 {
     private readonly IConfiguration _configuration;
-    private readonly BrandConfigurationSettings _brandSettings;
     private readonly ILogger<LeadsDataMartConsumer> _logger;
 
     private readonly IBrandDbContextFactory _dbContextFactory;
 
     private readonly IPublishEndpoint _publishEndpoint;
     public LeadsDataMartConsumer(IConfiguration configuration,
-                            IOptions<BrandConfigurationSettings> brandSettings,
                             ILogger<LeadsDataMartConsumer> logger,
                             IPublishEndpoint publishEndpoint,
                             IBrandDbContextFactory dbContextFactory)
     {
         _configuration = configuration;
-        _brandSettings = brandSettings.Value;
         _logger = logger;
         _publishEndpoint = publishEndpoint;
         _dbContextFactory = dbContextFactory;

@@ -19,7 +19,6 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 {
     //private readonly AstraContext _dbContext;
     private readonly IConfiguration _configuration;
-    private readonly BrandConfigurationSettings _brandSettings;
     private readonly ILogger<LeadsLMSConsumer> _logger;
 
     private readonly IBrandDbContextFactory _dbContextFactory;
@@ -28,14 +27,12 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 
     public LeadsLMSConsumer(//AstraContext dbContext, 
                             IConfiguration configuration,
-                            IOptions<BrandConfigurationSettings> brandSettings, 
                             ILogger<LeadsLMSConsumer> logger,
                             IPublishEndpoint publishEndpoint,
                             IBrandDbContextFactory dbContextFactory)
     {
         // _dbContext = dbContext;
         _configuration = configuration;
-        _brandSettings = brandSettings.Value;
         _logger = logger;
         _publishEndpoint = publishEndpoint;
         _dbContextFactory = dbContextFactory;
@@ -43,7 +40,8 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 
     public async Task Consume(ConsumeContext<RabbitMQLeadMessage_LMS> context)
     {
-        using var _dbContext = _dbContextFactory.CreateDbContext(context.Message.BrandName);
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        using var _dbContext = _dbContextFactory.CreateDbContext(context.Message.Database);
         _logger.LogInformation("NEW LMS MESSAGE Received: LMS Message ({Message}))", context.Message.Message_ID);
         var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
         if (entityMessage == null)
@@ -52,8 +50,8 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         }
         else
         {
-            //if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
-            //    return;
+            if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
+                return;
 
             var jsonString = entityMessage.MessageText;
             try
@@ -61,13 +59,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 _dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
 
                 var centerId = context.Message.Center_ID;
-                var brand = _brandSettings.Brands.FirstOrDefault(x => x.BrandName == context.Message.BrandName);
-                if (brand == null)
-                {
-                    _logger.LogError($"Brand ({context.Message.BrandName}) was not found", DateTimeOffset.Now);
-                    return;
-                }
-                var projectId = brand.ProjectGuid;
+                var projectId = context.Message.Project_ID;
 
                 Request lead = JsonConvert.DeserializeObject<Request>(jsonString);
                 var request_id = lead.Id;
@@ -102,14 +94,16 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 var request_type_name = lead.requestType?.Name;
                 var model_name = lead.vehicleModel?.name;
 
-                Guid.TryParse("5F67890F-D8ED-46BA-99C8-0C35EF6A0E51", out var updUser);
+                Guid.TryParse("1E835730-9CB3-4C47-8397-B7BF7CF0231F", out var updUser);
 
                 Guid? visitAimId = EMessageHelper.GetVisitAimId(request_type_id);
 
                 Guid? eMessageSubjectId = EMessageHelper.GetEMessageSubjectId(request_type_id);
+                string? eMessageSubjectName = EMessageHelper.GetEMessageSubjectName(request_type_id);
 
                 string eMessageComment = $"RequestTypeId: {request_type_id}\r\n" +
                                           $"LMS лид {request_id}\r\n" +
+                                          $"Тема обращения: {eMessageSubjectName}\r\n" +
                                           $"{last_name ?? ""} {first_name ?? ""} {middle_name ?? ""}\r\n" +
                                           $"{business_name ?? ""}\r\n" +
                                           $"Телефон клиента: {phone ?? ""}\r\n" +
@@ -119,7 +113,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                                           $"Комментарий клиента: {comment ?? ""}\r\n" +
                                           $"Предпочтительный способ связи: {communication_method}";
 
-                var connectionString = _configuration.GetConnectionString(brand.DataBase);
+                var connectionString = _configuration.GetConnectionString(context.Message.Database);
 
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
@@ -160,45 +154,51 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     entityMessage.UpdDate = DateTime.Now;
                     if (guid == Guid.Empty)
                     {
-                        entityMessage.ErrorCode = 6;
+                        entityMessage.ErrorCode = 1;
                         entityMessage.ErrorMessage = errorMes.ToString();
-                        entityMessage.ProcessingStatus = 3; //ошибка
-                        _logger.LogError($"Ошибка создания электронного обращения для id={request_id}, brand={context.Message.BrandName}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        entityMessage.ProcessingStatus = 3; //ошибка создания обращения
+                        _logger.LogError($"Ошибка создания электронного обращения для id={request_id}, brand={context.Message.BrandCenterName}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
                         await _dbContext.SaveChangesAsync();
                     }
                     else
                     {
-                        var stages = lead.stages;
-                        var stage = stages.First(x => x.stage_type_id == 3);
 
                         entityMessage.ProcessingStatus = 1; //обработали и создали обращение
                         var message = new RabbitMQStatusMessage_LMS
                         {
                             Message_ID = entityMessage.OuterMessage_ID,
-                            StageWorkId = stage.Id,
-                            ResultId = stage.result_id,
                             Center_ID = centerId,
-                            BrandName = context.Message.BrandName
+                            BrandCenterName = context.Message.BrandCenterName
                         };
                         await _dbContext.SaveChangesAsync();
-                        _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
                         _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
                         await _publishEndpoint.Publish(message);
                         _logger.LogInformation($"Собщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMS status queue", DateTimeOffset.Now);
                     }
-         
+
                 }
 
             }
             catch (Exception ex)
             {
+                entityMessage.ErrorCode = 1;
+                entityMessage.ErrorMessage = ex.Message;
+                entityMessage.ProcessingStatus = 3; //ошибка создания обращения
+                _logger.LogError($"Ошибка создания электронного обращения для {entityMessage.OuterMessage_ID}, brand={context.Message.BrandCenterName}, ({entityMessage.OuterMessage_ID}): {ex.Message}", DateTimeOffset.Now);
+                await _dbContext.SaveChangesAsync();
+
                 _logger.LogError($"InnerException: {ex.Message}))", DateTimeOffset.Now);
 
                 if (ex.InnerException != null)
                 {
                     _logger.LogError($"Error Info: {ex.InnerException.Message}");
                 }
+
+            }
+            finally
+            {
+                _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
             }
         }
     }

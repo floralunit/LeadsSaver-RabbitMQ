@@ -13,27 +13,18 @@ namespace LeadsSaverRabbitMQ.Configuration
     public class BrandDbContextFactory : IBrandDbContextFactory
     {
         private readonly IConfiguration _configuration;
-        private readonly BrandConfigurationSettings _brandSettings;
         private readonly ILogger<BrandDbContextFactory> _logger;
 
-        public BrandDbContextFactory(IConfiguration configuration, IOptions<BrandConfigurationSettings> brandSettings, ILogger<BrandDbContextFactory> logger)
+        public BrandDbContextFactory(IConfiguration configuration, ILogger<BrandDbContextFactory> logger)
         {
             _configuration = configuration;
-            _brandSettings = brandSettings.Value;
             _logger = logger;
         }
     
 
-        public AstraContext CreateDbContext(string brandName)
+        public AstraContext CreateDbContext(string database)
         {
-            var brand = _brandSettings.Brands.FirstOrDefault(b => b.BrandName == brandName);
-            if (brand == null)
-            {
-                _logger.LogError($"Бренд '{brandName}' не найден.", DateTimeOffset.Now);
-                return null;
-            }
-
-            var connectionString = _configuration.GetConnectionString(brand.DataBase);
+            var connectionString = _configuration.GetConnectionString(database);
             var optionsBuilder = new DbContextOptionsBuilder<AstraContext>();
             optionsBuilder.UseSqlServer(connectionString);
 

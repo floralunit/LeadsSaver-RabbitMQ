@@ -22,6 +22,7 @@ public class AstraContext : DbContext
            .HasKey(b => b.OuterMessage_ID);
         modelBuilder.Entity<OuterMessageReader>()
            .ToTable("OuterMessageReader", "stella")
+           .ToTable(tb => tb.HasTrigger("[stella].[TR_OuterMessageReader_AU_101]"))
            .HasKey(b => b.OuterMessageReader_ID);
         modelBuilder.Entity<EmployeeIdResult>()
            .HasNoKey();

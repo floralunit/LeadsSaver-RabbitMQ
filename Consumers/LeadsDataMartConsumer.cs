@@ -49,7 +49,6 @@ public class LeadsDataMartConsumer : IConsumer<RabbitMQLeadMessage_DataMart>
         //    var jsonString = entityMessage.MessageText;
         //    try
         //    {
-        //        _dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
 
         //        var centerId = context.Message.Center_ID;
         //        var projectId = context.Message.Project_ID;
@@ -165,7 +164,6 @@ public class LeadsDataMartConsumer : IConsumer<RabbitMQLeadMessage_DataMart>
         //                    BrandName = context.Message.BrandName
         //                };
         //                await _dbContext.SaveChangesAsync();
-        //                _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
         //                _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
         //                await _publishEndpoint.Publish(message);

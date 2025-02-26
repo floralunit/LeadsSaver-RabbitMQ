@@ -2,15 +2,12 @@
 using LeadsSaverRabbitMQ.Models;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using Microsoft.Extensions.Options;
 using LeadsSaverRabbitMQ.Configuration;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using Microsoft.Extensions.Logging;
 using LeadsSaverRabbitMQ.MessageModels;
-using MassTransit.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.EntityFrameworkCore.Query;
 using LeadsSaver_RabbitMQ.Services;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
@@ -25,13 +22,11 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public LeadsLMSConsumer(//AstraContext dbContext, 
-                            IConfiguration configuration,
+    public LeadsLMSConsumer(IConfiguration configuration,
                             ILogger<LeadsLMSConsumer> logger,
                             IPublishEndpoint publishEndpoint,
                             IBrandDbContextFactory dbContextFactory)
     {
-        // _dbContext = dbContext;
         _configuration = configuration;
         _logger = logger;
         _publishEndpoint = publishEndpoint;
@@ -50,13 +45,12 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         }
         else
         {
-            if (entityMessage.ProcessingStatus == 1 || entityMessage.ProcessingStatus == 2)
+            if ((new List<byte> { 1, 2, 4 }).Contains(entityMessage.ProcessingStatus))
                 return;
 
             var jsonString = entityMessage.MessageText;
             try
             {
-                _dbContext.Database.ExecuteSqlRaw("DISABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
 
                 var centerId = context.Message.Center_ID;
                 var projectId = context.Message.Project_ID;
@@ -164,6 +158,8 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     {
 
                         entityMessage.ProcessingStatus = 1; //обработали и создали обращение
+                        entityMessage.ErrorCode = 0;
+                        entityMessage.ErrorMessage = "";
                         var message = new RabbitMQStatusMessage_LMS
                         {
                             Message_ID = entityMessage.OuterMessage_ID,
@@ -173,8 +169,19 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                         await _dbContext.SaveChangesAsync();
                         _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
-                        await _publishEndpoint.Publish(message);
-                        _logger.LogInformation($"Собщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMS status queue", DateTimeOffset.Now);
+                        try
+                        {
+                            await _publishEndpoint.Publish(message);
+                            _logger.LogInformation($"Сообщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMS status queue", DateTimeOffset.Now);
+                        }
+                        catch (Exception ex)
+                        {
+                            entityMessage.ErrorCode = 1;
+                            entityMessage.ErrorMessage = ex.Message;
+                            entityMessage.ProcessingStatus = 4;
+                            await _dbContext.SaveChangesAsync();
+                            _logger.LogError($"Ошибка отправки сообщения в RabbitMQ для {entityMessage.OuterMessage_ID}: {ex.Message}", DateTimeOffset.Now);
+                        }
                     }
 
                 }
@@ -185,7 +192,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 entityMessage.ErrorCode = 1;
                 entityMessage.ErrorMessage = ex.Message;
                 entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                _logger.LogError($"Ошибка создания электронного обращения для {entityMessage.OuterMessage_ID}, brand={context.Message.BrandCenterName}, ({entityMessage.OuterMessage_ID}): {ex.Message}", DateTimeOffset.Now);
+                _logger.LogError($"Внутренняя ошибка создания электронного обращения для {entityMessage.OuterMessage_ID}, brand={context.Message.BrandCenterName}, ({entityMessage.OuterMessage_ID}): {ex.Message}", DateTimeOffset.Now);
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogError($"InnerException: {ex.Message}))", DateTimeOffset.Now);
@@ -195,10 +202,6 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     _logger.LogError($"Error Info: {ex.InnerException.Message}");
                 }
 
-            }
-            finally
-            {
-                _dbContext.Database.ExecuteSqlRaw("ENABLE TRIGGER [stella].[TR_OuterMessage_AU_101] on [stella].[OuterMessage]");
             }
         }
     }

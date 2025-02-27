@@ -41,7 +41,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
         var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
         if (entityMessage == null)
         {
-            _logger.LogError($"Message ({context.Message.Message_ID}) was not found in OuterMessage table", DateTimeOffset.Now);
+            _logger.LogError($"LMS Message ({context.Message.Message_ID}) was not found in OuterMessage table", DateTimeOffset.Now);
         }
         else
         {
@@ -151,7 +151,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                         entityMessage.ErrorCode = 1;
                         entityMessage.ErrorMessage = errorMes.ToString();
                         entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                        _logger.LogError($"Ошибка создания электронного обращения для id={request_id}, brand={context.Message.BrandCenterName}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        _logger.LogError($"Ошибка создания LMS электронного обращения для id={request_id}, brand={context.Message.BrandCenterName}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
                         await _dbContext.SaveChangesAsync();
                     }
                     else
@@ -167,7 +167,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                             BrandCenterName = context.Message.BrandCenterName
                         };
                         await _dbContext.SaveChangesAsync();
-                        _logger.LogInformation($"Успешно создано электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
+                        _logger.LogInformation($"Успешно создано LMS электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
                         try
                         {
@@ -180,7 +180,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                             entityMessage.ErrorMessage = ex.Message;
                             entityMessage.ProcessingStatus = 4;
                             await _dbContext.SaveChangesAsync();
-                            _logger.LogError($"Ошибка отправки сообщения в RabbitMQ для {entityMessage.OuterMessage_ID}: {ex.Message}", DateTimeOffset.Now);
+                            _logger.LogError($"Ошибка отправки LMS сообщения в RabbitMQ для {entityMessage.OuterMessage_ID}: {ex.Message}", DateTimeOffset.Now);
                         }
                     }
 
@@ -192,7 +192,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                 entityMessage.ErrorCode = 1;
                 entityMessage.ErrorMessage = ex.Message;
                 entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                _logger.LogError($"Внутренняя ошибка создания электронного обращения для {entityMessage.OuterMessage_ID}, brand={context.Message.BrandCenterName}, ({entityMessage.OuterMessage_ID}): {ex.Message}", DateTimeOffset.Now);
+                _logger.LogError($"Внутренняя ошибка создания LMS электронного обращения для {entityMessage.OuterMessage_ID}, brand={context.Message.BrandCenterName}, ({entityMessage.OuterMessage_ID}): {ex.Message}", DateTimeOffset.Now);
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogError($"InnerException: {ex.Message}))", DateTimeOffset.Now);

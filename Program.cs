@@ -39,6 +39,7 @@ namespace LeadsSaverRabbitMQ
                         cfg.AddBus(ConfigureBus);
                         cfg.AddConsumer<LeadsLMSConsumer>();
                         cfg.AddConsumer<LeadsDataMartConsumer>();
+                        cfg.AddConsumer<LeadsLMPConsumer>();
                     });
 
                     // Add IHostedService registration of type BusService

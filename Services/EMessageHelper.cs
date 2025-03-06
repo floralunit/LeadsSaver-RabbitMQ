@@ -12,11 +12,12 @@ namespace LeadsSaver_RabbitMQ.Services
         {
             return requestTypeId switch
             {
-                1 or 2 or 3 or 5 or 6 or 11 or 12 or 15 or 27 or 31 or 39 or 42 or 45 or 70 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
+                1 or 2 or 3 or 6 or 11 or 12 or 15 or 27 or 31 or 39 or 42 or 45 or 70 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
                 9 or 30 or 48 or 56 or 94 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                 10 or 18 or 36 => Guid.Parse("51925334-249F-4072-90E0-91CEAE1F24D9"), // Оценка (продажа) ТС с пробегом
                 21 or 29 or 51 or 54 or 79 => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
                 24 => Guid.Parse("1E64A761-306D-46DD-98C0-5696395DF71A"), // Корпоративный отдел
+                5 or 7 => Guid.Parse("5ceaabbe-5f28-4f46-93a6-61fdadbfa905"), // ОФУ
                 _ => null
             };
         }
@@ -38,7 +39,7 @@ namespace LeadsSaver_RabbitMQ.Services
             {
                 1 or 3 or 70 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
                 // 3 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль для гак
-                5 => Guid.Parse("1DB39B6C-59AA-4222-814E-E15928BEB775"), // Заявка на кредит
+                5 or 7 => Guid.Parse("1db39b6c-59aa-4222-814e-e15928beb775"), // Заявка на кредит
                 6 or 12 or 21 or 24 or 29 or 30 or 39 or 48 or 54 or 56 or 79 or 94 => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
                 9 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
                 11 or 15 or 31 or 42 or 45 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
@@ -54,7 +55,7 @@ namespace LeadsSaver_RabbitMQ.Services
             {
                 1 or 3 => "Заявка на тест-драйв", // Заявка на тест-драйв
                 // 3 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль для гак
-                5 => "Заявка на кредит", // Заявка на кредит
+                5 or 7 => "Заявка на кредит", // Заявка на кредит
                 6 or 12 or 21 or 24 or 29 or 30 or 39 or 48 or 54 or 56 or 79 or 94 => "Вопрос", // Вопрос
                 9 => "On-line запись на сервис", // On-line запись на сервис
                 11 or 15 or 31 or 42 or 45 => "Заявка на новый автомобиль", // Заявка на новый автомобиль
@@ -71,8 +72,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 "продажи" => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
                 "сервис" => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
                 "а/м с пробегом" => Guid.Parse("EC2354C6-F88F-4798-B2FB-8475C6C1DB3B"), // Оценка а/м с пробегом
-                //"жалоба" => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
-                "жалоба" => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Клиентская служба
+                "жалоба" => Guid.Parse("a0d02d92-ff61-46fa-92db-3af8102c7aec"), // жалоба
                 _ => null
             };
         }
@@ -98,9 +98,9 @@ namespace LeadsSaver_RabbitMQ.Services
                 1 or 4 or 8 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
                 5 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                 18 => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
-                //3 => Guid.Parse(""), // Покупка автомобиля с пробегом
-                //9 or 16 => Guid.Parse(""), // ОФУ
-                //11 => Guid.Parse(""), // Запчасти
+                3 => Guid.Parse("b688a9c7-cbf8-43c2-9b15-76e2f3e98bb2"), // Покупка автомобиля с пробегом
+                9 or 16 => Guid.Parse("5ceaabbe-5f28-4f46-93a6-61fdadbfa905"), // ОФУ
+                11 => Guid.Parse("7834a5c9-dd15-456d-95fd-d33af57fce6a"), // Запчасти
                 _ => null
             };
         }
@@ -114,8 +114,8 @@ namespace LeadsSaver_RabbitMQ.Services
                 4 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
                 5 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
                 11 => Guid.Parse("22994476-3A70-4F81-A856-A3EBD0E6E707"), // Заказ обратного звонка
-                //3 => Guid.Parse(""), // Покупка автомобиля с пробегом
-                16 => Guid.Parse("1DB39B6C-59AA-4222-814E-E15928BEB775"), // Заявка на кредит
+                3 => Guid.Parse("d0c08e77-bd0e-4354-872f-3ba3c4661b07"), // Покупка автомобиля с пробегом
+                16 => Guid.Parse("1db39b6c-59aa-4222-814e-e15928beb775"), // Заявка на кредит
                 _ => null
             };
         }
@@ -129,7 +129,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 4 => "Заявка на новый автомобиль", // Заявка на новый автомобиль
                 5 => "On-line запись на сервис", // On-line запись на сервис
                 11 => "Заказ обратного звонка", // Заказ обратного звонка
-                //3 => Guid.Parse(""), // Покупка автомобиля с пробегом
+                3 => "Покупка автомобиля с пробегом", // Покупка автомобиля с пробегом
                 16 => "Заявка на кредит", // Заявка на кредит
                 _ => null
             };

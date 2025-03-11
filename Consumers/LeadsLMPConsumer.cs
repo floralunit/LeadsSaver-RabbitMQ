@@ -174,7 +174,8 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                 entityMessage.ErrorCode = 1;
                 entityMessage.ErrorMessage = ex.Message;
                 entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                _logger.LogError($"Внутренняя ошибка создания LMP электронного обращения для {entityMessage.OuterMessage_ID}, ({entityMessage.MessageOuter_ID}): {ex.Message}", DateTimeOffset.Now);
+                var centerId = EMessageHelper.GetBWMCenterByOutletCode(context.Message.OutletCode);
+                _logger.LogError($"Внутренняя ошибка создания LMP электронного обращения для {entityMessage.OuterMessage_ID}, ({entityMessage.MessageOuter_ID}), outer code = {context.Message.OutletCode}, centerid = {centerId}: {ex.Message}", DateTimeOffset.Now);
                 await _dbContext.SaveChangesAsync();
 
                 _logger.LogError($"InnerException: {ex.Message}))", DateTimeOffset.Now);

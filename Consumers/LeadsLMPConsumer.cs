@@ -146,7 +146,7 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                         var message = new RabbitMQStatusMessage_LMP
                         {
                             Message_ID = entityMessage.OuterMessage_ID,
-                            Lead_Id = lead.lead_id.ToString()
+                            Outlet_Code = context.Message.OutletCode
                         };
                         await _dbContext.SaveChangesAsync();
                         _logger.LogInformation($"Успешно создано LMP электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);

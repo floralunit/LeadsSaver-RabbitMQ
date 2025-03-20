@@ -86,7 +86,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 "32869" => Guid.Parse("53e571c6-8b39-479e-b130-4852fd47a74e"), // БМВ-Зорге
                 "33173" => Guid.Parse("61568afe-81fe-4b55-b2bd-453bb6e51fd9"), // БМВ-Стартовая
                 "45551" => Guid.Parse("a1dfedf2-ab79-460c-886e-1d0fd604f058"), // БМВ-Шмитовский
-                "49608 " => Guid.Parse("a6c88432-e250-4d4f-aefb-0ba8ce1fe4fb"), // БМВ-Внуково
+                "49608" => Guid.Parse("a6c88432-e250-4d4f-aefb-0ba8ce1fe4fb"), // БМВ-Внуково
                 _ => null
             };
         }

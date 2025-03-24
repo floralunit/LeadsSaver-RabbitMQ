@@ -131,10 +131,11 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                     entityMessage.UpdDate = DateTime.Now;
                     if (guid == Guid.Empty)
                     {
+                        var mes = $"[LMP] Ошибка создания электронного обращения для id={request_id}, request_type={request_type_id}: {{errorMes.ToString()}}";
                         entityMessage.ErrorCode = 1;
-                        entityMessage.ErrorMessage = errorMes.ToString();
+                        entityMessage.ErrorMessage = mes;
                         entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                        _logger.LogError($"Ошибка создания LMP электронного обращения для id={request_id}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        _logger.LogError(mes, DateTimeOffset.Now);
                         await _dbContext.SaveChangesAsync();
                     }
                     else

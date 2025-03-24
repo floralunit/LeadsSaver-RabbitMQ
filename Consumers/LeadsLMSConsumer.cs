@@ -148,10 +148,11 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     entityMessage.UpdDate = DateTime.Now;
                     if (guid == Guid.Empty)
                     {
+                        var mes = $"[LMS] Ошибка создания электронного обращения для id={request_id}, brand={context.Message.BrandCenterName}, request_type={request_type_id}: {errorMes.ToString()}";
                         entityMessage.ErrorCode = 1;
-                        entityMessage.ErrorMessage = errorMes.ToString();
+                        entityMessage.ErrorMessage = mes;
                         entityMessage.ProcessingStatus = 3; //ошибка создания обращения
-                        _logger.LogError($"Ошибка создания LMS электронного обращения для id={request_id}, brand={context.Message.BrandCenterName}, request_type={request_type_id} ({entityMessage.OuterMessage_ID}): {errorMes.ToString()}", DateTimeOffset.Now);
+                        _logger.LogError(mes, DateTimeOffset.Now);
                         await _dbContext.SaveChangesAsync();
                     }
                     else

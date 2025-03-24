@@ -1,15 +1,17 @@
 using LeadsSaver_RabbitMQ.Consumers;
 using LeadsSaverRabbitMQ.Configuration;
 using LeadsSaverRabbitMQ.MessageModels;
-using LeadsSaverRabbitMQ.Models;
 using MassTransit;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NLog.Extensions.Logging;
+using Quartz.Impl;
+using Quartz.Spi;
+using Quartz;
+using LeadsSaver_RabbitMQ.Jobs;
+using LeadsSaver_RabbitMQ.Configuration;
 
 namespace LeadsSaverRabbitMQ
 {
@@ -25,6 +27,7 @@ namespace LeadsSaverRabbitMQ
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.Configure<RabbitMqSettings>(hostContext.Configuration.GetSection("RabbitMqSettings"));
+                    services.Configure<TelegramOptions>(hostContext.Configuration.GetSection("Telegram"));
 
                     services.AddDbContext<AstraContext>(options =>
                     {
@@ -33,6 +36,7 @@ namespace LeadsSaverRabbitMQ
                         //.LogTo(Console.WriteLine, LogLevel.Information);
                     });
                     services.AddTransient<IBrandDbContextFactory, BrandDbContextFactory>();
+                    services.AddHttpClient<SendErrorLeadsToTelegramJob>();
 
                     services.AddMassTransit(cfg =>
                     {
@@ -45,6 +49,26 @@ namespace LeadsSaverRabbitMQ
                     // Add IHostedService registration of type BusService
                     services.AddHostedService<BusService>();
                     services.AddMassTransitHostedService();
+
+                    services.AddQuartzHostedService(options =>
+                    {
+                        options.WaitForJobsToComplete = true;
+                    });
+
+                    services.AddTransient<SendErrorLeadsToTelegramJob>();
+
+                    services.AddSingleton<IJobFactory, SingletonJobFactory>();
+                    services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+
+                    services.AddSingleton(provider =>
+                    {
+                        var schedulerFactory = provider.GetRequiredService<ISchedulerFactory>();
+                        var scheduler = schedulerFactory.GetScheduler().Result;
+                        scheduler.JobFactory = provider.GetRequiredService<IJobFactory>();
+                        return scheduler;
+                    });
+
+                    services.AddHostedService<LeadsServiceJobScheduler>();
                 })
                 .ConfigureLogging(logging =>
                 {

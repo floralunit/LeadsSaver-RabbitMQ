@@ -93,7 +93,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "geely":
+                case "geely-d" or "geely-k":
                     return requestTypeId switch
                     {
                         3 or 6 or 9 or 15 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
@@ -153,7 +153,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "hongqi":
+                case "hongqi-b":
                     return requestTypeId switch
                     {
                         1 or 2 or 3 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
@@ -209,7 +209,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "geely":
+                case "geely-d" or "geely-k":
                     return requestTypeId switch
                     {
                         3 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
@@ -289,7 +289,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "hongqi":
+                case "hongqi-b":
                     return requestTypeId switch
                     {
                         1 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
@@ -350,7 +350,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "geely":
+                case "geely-d" or "geely-k":
                     return requestTypeId switch
                     {
                         3 => "Заявка на тест-драйв",
@@ -430,7 +430,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         _ => null
                     };
 
-                case "hongqi":
+                case "hongqi-b":
                     return requestTypeId switch
                     {
                         1 => "Заявка на тест-драйв",

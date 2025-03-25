@@ -73,9 +73,9 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
 
                 Guid.TryParse("1E835730-9CB3-4C47-8397-B7BF7CF0231F", out var updUser);
 
-                Guid? visitAimId = EMessageHelper.GetVisitAimId(request_type_id);
+                Guid? visitAimId = EMessageHelper.GetVisitAimId_BMW(request_type_id);
 
-                Guid? eMessageSubjectId = EMessageHelper.GetEMessageSubjectId(request_type_id);
+                Guid? eMessageSubjectId = EMessageHelper.GetEMessageSubjectId_BMW(request_type_id);
                 string? eMessageSubjectName = EMessageHelper.GetEMessageSubjectName_BMW(request_type_id);
 
                 string eMessageComment = $"RequestTypeId: {request_type_id}\r\n" +

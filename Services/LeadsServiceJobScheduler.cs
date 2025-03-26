@@ -26,7 +26,7 @@ public class LeadsServiceJobScheduler : IHostedService
             .WithIdentity($"sendErrorLeadsToTelegramJob", "groupsendErrorLeads")
             .StartNow()
             //.WithSimpleSchedule(x => x.WithInterval(TimeSpan.FromMinutes(30)).RepeatForever())
-            .WithCronSchedule("0 0/30 9-18 ? * * *", x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time"))) // Запуск каждые 30 минут с 9 утра до 6 вечера
+            .WithCronSchedule("0 0 9-18 ? * MON-FRI *", x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time"))) // Запуск раз в час с 9 утра до 6 вечера по рабочим дням
             .Build();
 
         await _scheduler.ScheduleJob(job, trigger, cancellationToken);

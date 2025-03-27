@@ -114,7 +114,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 case "chery-k" or "chery-h":
                     return requestTypeId switch
                     {
-                        1 or 2 or 3 or 10 or 11 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
+                        1 or 2 or 3 or 10 or 11 or 24 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
                         5 or 23 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                         _ => null
                     };
@@ -235,7 +235,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 case "chery-k" or "chery-h":
                     return requestTypeId switch
                     {
-                        1 or 11 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
+                        1 or 11 or 24 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
                         2 => Guid.Parse("22994476-3A70-4F81-A856-A3EBD0E6E707"), // Заказ обратного звонка
                         3 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
                         5 or 23 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
@@ -377,7 +377,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 case "chery-k" or "chery-h":
                     return requestTypeId switch
                     {
-                        1 or 11 => "Заявка на новый автомобиль",
+                        1 or 11 or 24 => "Заявка на новый автомобиль",
                         2 => "Заказ обратного звонка",
                         3 => "Заявка на тест-драйв",
                         5 or 23 => "On-line запись на сервис",

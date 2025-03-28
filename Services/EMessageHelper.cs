@@ -88,7 +88,7 @@ namespace LeadsSaver_RabbitMQ.Services
                     return requestTypeId switch
                     {
                         3 or 6 or 9 or 15 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
-                        12 or 24 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
+                        12 or 24 or 181 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                         730 => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
                         _ => null
                     };
@@ -130,7 +130,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 case "gac-a" or "gac-m" or "gac-sh":
                     return requestTypeId switch
                     {
-                        1 or 2 or 3 or 5 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
+                        1 or 2 or 3 or 5 or 7 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
                         8 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                         _ => null
                     };
@@ -206,6 +206,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         15 => Guid.Parse("22994476-3A70-4F81-A856-A3EBD0E6E707"), // Заказ обратного звонка
                         24 => Guid.Parse("719F0EBC-C512-4190-BC53-085D9ED74EAA"), // Контакт импортёра
                         730 => Guid.Parse("a0d02d92-ff61-46fa-92db-3af8102c7aec"), // Жалоба
+                        181 => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
                         _ => null
                     };
 
@@ -261,7 +262,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         1 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
                         2 => Guid.Parse("22994476-3A70-4F81-A856-A3EBD0E6E707"), // Заказ обратного звонка
                         3 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
-                        5 => Guid.Parse("1db39b6c-59aa-4222-814e-e15928beb775"), // Заявка на кредит
+                        5 or 7 => Guid.Parse("1db39b6c-59aa-4222-814e-e15928beb775"), // Заявка на кредит
                         8 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
                         _ => null
                     };
@@ -348,6 +349,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         15 => "Заказ обратного звонка",
                         24 => "Контакт импортёра",
                         730 => "Жалоба",
+                        181 => "Вопрос",
                         _ => null
                     };
 
@@ -403,7 +405,7 @@ namespace LeadsSaver_RabbitMQ.Services
                         1 => "Заявка на тест-драйв",
                         2 => "Заказ обратного звонка",
                         3 => "Заявка на новый автомобиль",
-                        5 => "Заявка на кредит",
+                        5 or 7 => "Заявка на кредит",
                         8 => "On-line запись на сервис",
                         _ => null
                     };

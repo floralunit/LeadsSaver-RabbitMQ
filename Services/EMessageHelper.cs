@@ -147,7 +147,7 @@ namespace LeadsSaver_RabbitMQ.Services
                 case "gwm-vpro" or "gwm-v" or "gwm-tank":
                     return requestTypeId switch
                     {
-                        27 or 30 or 33 or 418 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
+                        27 or 30 or 33 or 418 or 2081 => Guid.Parse("52CBAC59-E526-4BCE-9252-CF0CF7305363"), // Отдел розницы
                         24 or 612 or 2075 or 2250 or 2261 or 2299 => Guid.Parse("83AFA901-636B-4B19-BFED-3BCB92C9F3B8"), // Сервис-бюро (слесарный ремонт)
                         12 or 1068 or 1910 or 2095 => Guid.Parse("2A20D8B0-C7F8-43BD-B085-C0281816CF13"), // Клиентская служба
                         _ => null
@@ -284,7 +284,7 @@ namespace LeadsSaver_RabbitMQ.Services
                     {
                         24 or 2075 or 2261 => Guid.Parse("30994BF3-BF73-4D9F-A6FA-ED98FB9B9411"), // On-line запись на сервис
                         27 => Guid.Parse("B92FCB08-5642-485C-A0A8-9DAA233214C0"), // Заявка на тест-драйв
-                        30 or 33 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
+                        30 or 33 or 2081 => Guid.Parse("2600F15D-8DF5-42F5-9098-215357DAF5B4"), // Заявка на новый автомобиль
                         12 or 418 or 612 or 1910 or 2299 => Guid.Parse("92472552-F566-4795-8553-5052466B968C"), // Вопрос
                         2250 => Guid.Parse("719F0EBC-C512-4190-BC53-085D9ED74EAA"), // Контакт импортёра
                         1068 or 2095 => Guid.Parse("a0d02d92-ff61-46fa-92db-3af8102c7aec"), // Жалоба
@@ -427,7 +427,7 @@ namespace LeadsSaver_RabbitMQ.Services
                     {
                         24 or 2075 or 2261 => "On-line запись на сервис",
                         27 => "Заявка на тест-драйв",
-                        30 or 33 => "Заявка на новый автомобиль",
+                        30 or 33 or 2081 => "Заявка на новый автомобиль",
                         12 or 418 or 612 or 1910 or 2299 => "Вопрос",
                         2250 => "Контакт импортёра",
                         1068 or 2095 => "Жалоба",

@@ -91,10 +91,12 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
 
                 Guid.TryParse("1E835730-9CB3-4C47-8397-B7BF7CF0231F", out var updUser);
 
-                Guid? visitAimId = EMessageHelper.GetVisitAimId(brand, request_type_id);
 
-                Guid? eMessageSubjectId = EMessageHelper.GetEMessageSubjectId(brand,request_type_id);
-                string? eMessageSubjectName = EMessageHelper.GetEMessageSubjectName(brand,request_type_id);
+
+                var mappings = await _dbContext.BrandEMessageMappings.FirstOrDefaultAsync(x => x.Brand.ToLower() == brand.ToLower() && x.RequestTypeId == request_type_id);
+                Guid? visitAimId = mappings?.VisitAimId;
+                Guid? eMessageSubjectId = mappings?.EMessageSubjectId;
+                string? eMessageSubjectName = mappings?.EMessageSubjectName;
 
                 string eMessageComment = $"RequestTypeId: {request_type_id}\r\n" +
                                           $"LMS лид {request_id}\r\n" +

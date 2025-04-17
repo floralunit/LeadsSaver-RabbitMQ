@@ -10,6 +10,7 @@ using LeadsSaverRabbitMQ.MessageModels;
 using Microsoft.Extensions.Configuration;
 using LeadsSaver_RabbitMQ.Services;
 using LeadsSaver_RabbitMQ.Models;
+using MassTransit.DependencyInjection;
 
 namespace LeadsSaver_RabbitMQ.Consumers;
 
@@ -38,11 +39,11 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
     {
         await Task.Delay(TimeSpan.FromSeconds(2));
         using var _dbContext = _dbContextFactory.CreateDbContext("ASTRA_AUDI_TEST");
-        _logger.LogInformation("NEW LMP MESSAGE Received: LMP Message ({Message}))", context.Message.Message_ID);
-        var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.Message_ID.ToString().ToLower());
+        _logger.LogInformation("NEW LMP MESSAGE Received: LMP Message ({Message}))", context.Message.OuterMessage_ID);
+        var entityMessage = await _dbContext.OuterMessage.FirstOrDefaultAsync(e => e.OuterMessage_ID.ToString().ToLower() == context.Message.OuterMessage_ID.ToString().ToLower());
         if (entityMessage == null)
         {
-            _logger.LogError($"LMP Message ({context.Message.Message_ID}) was not found in OuterMessage table", DateTimeOffset.Now);
+            _logger.LogError($"LMP Message ({context.Message.OuterMessage_ID}) was not found in OuterMessage table", DateTimeOffset.Now);
         }
         else
         {
@@ -73,10 +74,10 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
 
                 Guid.TryParse("1E835730-9CB3-4C47-8397-B7BF7CF0231F", out var updUser);
 
-                Guid? visitAimId = EMessageHelper.GetVisitAimId_BMW(request_type_id);
-
-                Guid? eMessageSubjectId = EMessageHelper.GetEMessageSubjectId_BMW(request_type_id);
-                string? eMessageSubjectName = EMessageHelper.GetEMessageSubjectName_BMW(request_type_id);
+                var mappings = await _dbContext.BrandEMessageMappings.FirstOrDefaultAsync(x => x.Brand.ToLower() == "bmw" && x.RequestTypeId == request_type_id);
+                Guid? visitAimId = mappings?.VisitAimId;
+                Guid? eMessageSubjectId = mappings?.EMessageSubjectId;
+                string? eMessageSubjectName = mappings?.EMessageSubjectName;
 
                 string eMessageComment = $"RequestTypeId: {request_type_id}\r\n" +
                                           $"LMS лид {request_id}\r\n" +
@@ -107,7 +108,7 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                     command.Parameters.Add("@EMessageSubject_ID", SqlDbType.UniqueIdentifier).Value = eMessageSubjectId ?? (object)DBNull.Value;
                     //command.Parameters.Add("@EmployeePlan_ID", SqlDbType.UniqueIdentifier).Value = employeeId ?? (object)DBNull.Value;
                     command.Parameters.Add("@Comment", SqlDbType.VarChar).Value = eMessageComment;
-                    command.Parameters.Add("@ProActivity", SqlDbType.TinyInt).Value = 39;
+                    command.Parameters.Add("@ProActivity", SqlDbType.TinyInt).Value = 40;
                     command.Parameters.Add("@LeadOrderNumber", SqlDbType.VarChar, 255).Value = request_id.ToString();
                     command.Parameters.Add("@LeadID", SqlDbType.VarChar, 255).Value = lead.lead_id.ToString();
                     command.Parameters.Add("@LeadPhoneNumber", SqlDbType.VarChar, 255).Value = phone;
@@ -119,6 +120,7 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                     command.Parameters.Add("@LeadAddress", SqlDbType.VarChar, 255).Value = address;
                     //command.Parameters.Add("@LeadCommunicationMethod", SqlDbType.TinyInt).Value = communication_method == '1' ? 1 : (communication_method == '0' ? 0 : DBNull.Value);
                     command.Parameters.Add("@ForceTransitionToAccept", SqlDbType.Bit).Value = 1;
+                    command.Parameters.Add("@OuterMessage_ID", SqlDbType.UniqueIdentifier).Value = context.Message.OuterMessage_ID;
 
                     command.Parameters.Add("@ErrMes", SqlDbType.VarChar, 1000).Direction = ParameterDirection.Output;
 
@@ -144,27 +146,27 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                         entityMessage.ProcessingStatus = 1; //обработали и создали обращение
                         entityMessage.ErrorCode = 0;
                         entityMessage.ErrorMessage = "";
-                        var message = new RabbitMQStatusMessage_LMP
-                        {
-                            Message_ID = entityMessage.OuterMessage_ID,
-                            Outlet_Code = context.Message.OutletCode
-                        };
+                        //var message = new RabbitMQStatusMessage_LMP
+                        //{
+                        //    Message_ID = entityMessage.OuterMessage_ID,
+                        //    Outlet_Code = context.Message.OutletCode
+                        //};
                         await _dbContext.SaveChangesAsync();
                         _logger.LogInformation($"Успешно создано LMP электронное обращение для id {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID})", DateTimeOffset.Now);
 
-                        try
-                        {
-                            await _publishEndpoint.Publish(message);
-                            _logger.LogInformation($"Сообщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMP status queue", DateTimeOffset.Now);
-                        }
-                        catch (Exception ex)
-                        {
-                            entityMessage.ErrorCode = 1;
-                            entityMessage.ErrorMessage = ex.Message;
-                            entityMessage.ProcessingStatus = 4;
-                            await _dbContext.SaveChangesAsync();
-                            _logger.LogError($"Ошибка отправки LMP сообщения в RabbitMQ для {entityMessage.OuterMessage_ID}: {ex.Message}", DateTimeOffset.Now);
-                        }
+                        //try
+                        //{
+                        //    await _publishEndpoint.Publish(message);
+                        //    _logger.LogInformation($"Сообщение для изменения статуса {entityMessage.MessageOuter_ID} ({entityMessage.OuterMessage_ID}) успешно добавлено в очередь RabbitMQ LMP status queue", DateTimeOffset.Now);
+                        //}
+                        //catch (Exception ex)
+                        //{
+                        //    entityMessage.ErrorCode = 1;
+                        //    entityMessage.ErrorMessage = ex.Message;
+                        //    entityMessage.ProcessingStatus = 4;
+                        //    await _dbContext.SaveChangesAsync();
+                        //    _logger.LogError($"Ошибка отправки LMP сообщения в RabbitMQ для {entityMessage.OuterMessage_ID}: {ex.Message}", DateTimeOffset.Now);
+                        //}
                     }
 
                 }

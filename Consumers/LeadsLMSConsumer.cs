@@ -139,6 +139,7 @@ public class LeadsLMSConsumer : IConsumer<RabbitMQLeadMessage_LMS>
                     command.Parameters.Add("@LeadAddress", SqlDbType.VarChar, 255).Value = address;
                     command.Parameters.Add("@LeadCommunicationMethod", SqlDbType.TinyInt).Value = communication_method == '1' ? 1 : (communication_method == '0' ? 0 : DBNull.Value);
                     command.Parameters.Add("@ForceTransitionToAccept", SqlDbType.Bit).Value = 1;
+                    command.Parameters.Add("@OuterMessage_ID", SqlDbType.UniqueIdentifier).Value = context.Message.Message_ID;
 
                     command.Parameters.Add("@ErrMes", SqlDbType.VarChar, 1000).Direction = ParameterDirection.Output;
 

@@ -206,7 +206,7 @@ namespace LeadsSaver_RabbitMQ.Models
         /// <summary>
         /// Контактный номер телефона.
         /// </summary>
-        public string contact_phone { get; set; }
+        public string contect_phone { get; set; }
 
         /// <summary>
         /// Адрес электронной почты.

@@ -66,7 +66,7 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                 var middle_name = lead.contact.middle_name;
                // var business_name = lead.contact.;
                 var email = lead.contact.email;
-                var phone = lead.contact.contact_phone;
+                var phone = lead.contact.contect_phone;
                 var address = lead.contact.address;
                 var vin = lead.contact.vin;
                 var created_at = lead.dealer_receive_date;
@@ -133,7 +133,7 @@ public class LeadsLMPConsumer : IConsumer<RabbitMQLeadMessage_LMP>
                     entityMessage.UpdDate = DateTime.Now;
                     if (guid == Guid.Empty)
                     {
-                        var mes = $"[LMP] Ошибка создания электронного обращения для id={request_id}, request_type={request_type_id}: {{errorMes.ToString()}}";
+                        var mes = $"[LMP] Ошибка создания электронного обращения для id={request_id}, request_type={request_type_id}: {errorMes.ToString()}";
                         entityMessage.ErrorCode = 1;
                         entityMessage.ErrorMessage = mes;
                         entityMessage.ProcessingStatus = 3; //ошибка создания обращения

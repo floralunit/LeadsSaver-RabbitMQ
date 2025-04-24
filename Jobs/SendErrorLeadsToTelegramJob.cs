@@ -48,6 +48,10 @@ namespace LeadsSaver_RabbitMQ.Jobs
 
             foreach (var lead3V in errorLeads3V)
             {
+                if (lead3V.ErrorMessage.Contains("request_type=40") || lead3V.ErrorMessage.Contains("request_type=619")) // не разобрались, что это за request_type, пропускаем, чтобы бот не спамил
+                {
+                    continue;
+                }
                 await SendMessageToTelegramBotAsync(lead3V.ErrorMessage);
             }
 
